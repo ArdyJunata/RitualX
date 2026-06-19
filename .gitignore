@@ -1,0 +1,79 @@
+# ========================
+# OS Generated Files
+# ========================
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ========================
+# IDE / Editor
+# ========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ========================
+# Environment Variables
+# ========================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.production
+
+# ========================
+# Frontend (Next.js)
+# ========================
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.turbo/
+frontend/coverage/
+frontend/.vercel/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.pnpm-debug.log*
+frontend/next-env.d.ts
+
+# ========================
+# Backend (Go)
+# ========================
+backend/tmp/
+backend/bin/
+backend/vendor/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# ========================
+# Database
+# ========================
+*.sql.bak
+pgdata/
+
+# ========================
+# Docker
+# ========================
+docker-compose.override.yml
+
+# ========================
+# AI / Agent Config
+# ========================
+.gemini/
+
+# ========================
+# Misc
+# ========================
+*.log
+*.pid
+*.seed
+*.pid.lock
+*.agents
