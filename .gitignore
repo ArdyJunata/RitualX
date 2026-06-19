@@ -77,3 +77,5 @@ docker-compose.override.yml
 *.seed
 *.pid.lock
 *.agents
+*kiro
+rule.txt
