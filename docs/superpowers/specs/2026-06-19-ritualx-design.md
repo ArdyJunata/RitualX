@@ -104,7 +104,8 @@ backend/
 │   └── server/main.go        # Entry point
 ├── internal/
 │   ├── config/                # App config
-│   ├── middleware/             # Auth, CORS, logging
+│   ├── middleware/             # Auth, CORS, trace
+│   ├── logger/                # Structured JSON logger (slog)
 │   ├── model/                 # GORM models
 │   ├── handler/               # HTTP handlers
 │   ├── service/               # Business logic
@@ -819,15 +820,18 @@ A user story is considered **Done** when ALL of the following are met:
 
 | ID | User Story | Acceptance Criteria | Points |
 |----|-----------|---------------------|--------|
-| S1-01 | As a developer, I want the backend project scaffolded with Go Fiber, GORM, and PostgreSQL so that I have a working development environment | • Go Fiber server starts on configured port • GORM connects to PostgreSQL • Health check endpoint `/api/v1/health` returns 200 • Project follows the defined folder structure (`cmd/`, `internal/`, `pkg/`) • Environment config loads from `.env` | 3 |
+| S1-01 | As a developer, I want the backend project scaffolded with Go Fiber, GORM, and PostgreSQL so that I have a working development environment | • Go Fiber server starts on configured port • GORM connects to PostgreSQL • Health check endpoint `/api/v1/health` returns 200 • Project follows the defined folder structure (`cmd/`, `internal/`, `pkg/`) • Environment config loads from `.env` • Structured JSON logger (`slog`) initialized in `internal/logger/` with configurable log level via `LOG_LEVEL` env var • `logger.Get()` returns configured `*slog.Logger` • `logger.FromContext(ctx)` extracts logger with `trace_id` | 3 |
+| S1-08 | As a developer, I want a trace middleware that records full request/response telemetry so that I can debug and monitor API behavior | • Trace middleware wraps all routes and captures: trace_id, method, path, host, user_agent, request_headers, request_body, response_status, response_body, duration_ms, client_ip, error • Generates UUID v4 `trace_id` per request, sets `X-Trace-ID` response header • Logs as structured JSON via `slog` at request completion • Log level: INFO for 2xx/3xx, WARN for 4xx, ERROR for 5xx • `Authorization` header value redacted in logs • Request/response bodies capped at 10KB (truncated beyond) • Skips body capture for multipart/form-data • `/api/v1/health` excluded from trace logging • Passwords redacted for `/auth/*` endpoints | 5 |
 | S1-02 | As a developer, I want the frontend project scaffolded with Next.js and Tailwind so that I have a working development environment | • Next.js app runs with App Router • Tailwind CSS is configured with the design token colors • Project follows the defined folder structure (`app/`, `components/`, `lib/`) • Google Fonts (Inter, Outfit) loaded | 3 |
 | S1-03 | As a developer, I want database migrations for users table so that user data can be persisted | • `users` table created with all columns per data model • Migration runs forward and rolls back cleanly • UUID generation works | 2 |
 | S1-04 | As a new user, I want to register with email, username, and password so that I can create an account | • `POST /api/v1/auth/register` creates user and returns access + refresh JWT tokens • Password is hashed with bcrypt • Duplicate email/username returns 409 error • Validation: email format, password min 8 chars, username 3-20 chars | 5 |
 | S1-05 | As a returning user, I want to login with email and password so that I can access my account | • `POST /api/v1/auth/login` returns access + refresh tokens on valid credentials • Invalid credentials return 401 • Access token expires in 15 minutes • `POST /api/v1/auth/refresh` returns new access token with valid refresh token • `POST /api/v1/auth/logout` invalidates refresh token | 5 |
 | S1-06 | As a user, I want to see login and register screens so that I can authenticate in the app | • Login screen: email + password fields, submit button, link to register • Register screen: email + username + password fields, submit button, link to login • Dark theme with glassmorphism card styling • Form validation with inline error messages • Successful auth redirects to daily view | 5 |
 | S1-07 | As a user, I want a main app layout with floating bottom navbar so that I can navigate between views | • Bottom navbar with 5 items: Daily, Weekly, ＋ (FAB), Monthly, Me • Active tab shows glowing dot indicator • Center ＋ button is elevated FAB style • Smooth slide animation on tab switch • Navbar persists across all main views • Routing works for `/daily`, `/weekly`, `/monthly`, `/me` | 5 |
+| S1-09 | As a developer, I want a Docker Compose setup so that all services run in containers locally | • `docker-compose.yml` at project root with services: backend, frontend, postgres • Backend multi-stage Dockerfile (golang:1.23-alpine build → alpine runtime) • Frontend multi-stage Dockerfile (node:20-alpine build → standalone output) • PostgreSQL 16-alpine with named volume `postgres_data` • Single bridge network `ritualx-net` • `.env.example` with all required variables documented • `docker compose up` starts all services successfully • Backend connects to postgres via internal network hostname | 5 |
+| S1-10 | As a developer, I want Loki + Promtail + Grafana running in Docker Compose so that I can monitor logs | • Loki, Promtail, and Grafana services added to `docker-compose.yml` • Promtail scrapes container stdout via Docker volume mount (`/var/lib/docker/containers`) • Promtail pipeline parses JSON logs and extracts `level`, `trace_id`, `path`, `status` as labels • Promtail drops health check logs • Loki config with 7-day retention (`LOKI_RETENTION_PERIOD` env var) • Grafana pre-provisioned with Loki datasource • Grafana API Overview dashboard: request rate, error rate, p95 latency • Grafana accessible at `localhost:3001` • Config files in `infra/loki/`, `infra/promtail/`, `infra/grafana/provisioning/` | 5 |
 
-**Sprint 1 Total: 28 points**
+**Sprint 1 Total: 43 points**
 
 ---
 
@@ -967,7 +971,7 @@ A user story is considered **Done** when ALL of the following are met:
 
 | Sprint | Phase | Goal | Story Points |
 |--------|-------|------|-------------|
-| Sprint 1 | Core | Foundation & Auth | 28 |
+| Sprint 1 | Core | Foundation & Auth | 43 |
 | Sprint 2 | Core | Routines & Daily View | 31 |
 | Sprint 3 | Core | Heatmap, Streaks & Statistics | 43 |
 | Sprint 4 | Gamification | XP, Leveling & Ritual Chains | 31 |
@@ -975,7 +979,7 @@ A user story is considered **Done** when ALL of the following are met:
 | Sprint 6 | Gamification | Punishments & Polish | 33 |
 | Sprint 7 | Social | Partners & Nudges | 29 |
 | Sprint 8 | Social | Leaderboard, Profile & Launch | 34 |
-| **Total** | | | **268 points** |
+| **Total** | | | **283 points** |
 
 > **Note:** Sprints 3 and 5 are overloaded. If velocity falls short, lower-priority stories (marked in sprint descriptions) should overflow to the next sprint. The sprint retrospective will adjust velocity targets based on actual throughput.
 
@@ -989,7 +993,205 @@ A user story is considered **Done** when ALL of the following are met:
 
 ---
 
-### 7. Non-Functional Requirements
+### 7. Observability & Monitoring
+
+#### 7.1 Trace Middleware
+
+A Fiber middleware that wraps every incoming HTTP request to capture request/response telemetry.
+
+**Captured Fields:**
+
+| Field | Source | Description |
+|-------|--------|-------------|
+| `trace_id` | Generated (UUID v4) | Unique ID per request, returned in `X-Trace-ID` response header |
+| `method` | `c.Method()` | HTTP method (GET, POST, etc.) |
+| `path` | `c.Path()` | Request path (e.g., `/api/v1/routines`) |
+| `host` | `c.Hostname()` | Request host header |
+| `user_agent` | `c.Get("User-Agent")` | Client user agent |
+| `request_headers` | `c.GetReqHeaders()` | All request headers (sanitized — redact `Authorization` value) |
+| `request_body` | `c.Body()` | Request body (max 10KB captured, truncated beyond) |
+| `response_status` | `c.Response().StatusCode()` | HTTP response status code |
+| `response_body` | Intercepted | Response body (max 10KB captured, truncated beyond) |
+| `duration_ms` | `time.Since(start)` | Request duration in milliseconds |
+| `client_ip` | `c.IP()` | Client IP address |
+| `error` | Recovery/handler | Error message if request errored |
+
+**Behavior:**
+- Generates `trace_id` at start, injects into `c.Locals("trace_id")` for downstream use
+- Sets `X-Trace-ID` response header for client-side correlation
+- Logs full request/response as a single structured JSON log entry at request completion
+- Log level: `INFO` for 2xx/3xx, `WARN` for 4xx, `ERROR` for 5xx
+- Skips body capture for multipart/form-data (file uploads)
+- Health check (`/api/v1/health`) excluded from trace logging to reduce noise
+
+**Security:**
+- `Authorization` header value redacted (logged as `"Bearer [REDACTED]"`)
+- Passwords in request bodies redacted for `/auth/*` endpoints
+
+#### 7.2 Structured Logger (slog)
+
+JSON-formatted structured logging using Go's `log/slog` package.
+
+**Setup:**
+- Default handler: `slog.NewJSONHandler(os.Stdout, opts)`
+- Log level configurable via `LOG_LEVEL` env var (`debug`, `info`, `warn`, `error`) — default: `info`
+- All log entries include: `timestamp`, `level`, `msg`, `trace_id` (from context when available)
+
+**Standard Log Fields:**
+
+```json
+{
+  "time": "2026-06-19T12:00:00.000Z",
+  "level": "INFO",
+  "msg": "request completed",
+  "trace_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "method": "POST",
+  "path": "/api/v1/routines/123/log",
+  "status": 201,
+  "duration_ms": 45,
+  "client_ip": "192.168.1.1"
+}
+```
+
+**Usage Pattern:**
+- Logger initialized once at app startup in `internal/logger/logger.go`
+- Exported `logger.Get()` returns the configured `*slog.Logger`
+- Middleware injects `trace_id` into context; services extract via `logger.FromContext(ctx)`
+- Application-level logs (service/repository layer) use the same logger with `trace_id` correlation
+
+**Log Categories:**
+| Category | Level | Example |
+|----------|-------|---------|
+| HTTP request/response | INFO/WARN/ERROR | Trace middleware output |
+| Database queries (slow) | WARN | Queries exceeding 200ms |
+| Auth events | INFO | Login success/failure, token refresh |
+| Business events | INFO | Streak milestone, punishment triggered |
+| System errors | ERROR | DB connection lost, panic recovery |
+
+#### 7.3 Log Aggregation — Loki + Promtail + Grafana
+
+Self-hosted log monitoring stack running alongside the app in Docker Compose.
+
+**Stack:**
+
+| Service | Role | Image |
+|---------|------|-------|
+| **Grafana** | Log visualization, dashboards, alerting | `grafana/grafana:latest` |
+| **Loki** | Log storage & query engine (LogQL) | `grafana/loki:latest` |
+| **Promtail** | Log collector — tails container stdout and ships to Loki | `grafana/promtail:latest` |
+
+**Architecture Flow:**
+
+```
+Backend (slog → stdout JSON)  ──→  Docker stdout
+Frontend (Next.js → stdout)   ──→  Docker stdout
+                                        │
+                                   Promtail (tails /var/log/docker containers)
+                                        │
+                                      Loki (stores, indexes by labels)
+                                        │
+                                    Grafana (query, dashboards, alerts)
+```
+
+**Promtail Configuration:**
+- Scrapes Docker container logs via volume mount (`/var/lib/docker/containers`)
+- Labels: `container_name`, `service` (backend/frontend/postgres)
+- Pipeline: JSON parsing stage to extract `level`, `trace_id`, `path`, `status` as indexed labels
+- Drops health check logs (`path="/api/v1/health"`)
+
+**Grafana Dashboards (pre-provisioned):**
+- **API Overview** — Request rate, error rate (4xx/5xx), p95 latency (from `duration_ms`)
+- **Trace Explorer** — Filter logs by `trace_id` to see full request lifecycle
+- **Error Log** — Live tail of WARN/ERROR level logs
+- **Auth Events** — Login attempts, failures, token refreshes
+
+**Retention:** 7 days (configurable via `LOKI_RETENTION_PERIOD` env var)
+
+**Ports:**
+| Service | Internal | Exposed (dev) |
+|---------|----------|---------------|
+| Grafana | 3000 | 3001 |
+| Loki | 3100 | — (internal only) |
+| Promtail | 9080 | — (internal only) |
+
+---
+
+### 8. Infrastructure — Docker Compose
+
+All services run in a single `docker-compose.yml` at project root.
+
+**Services:**
+
+| Service | Image/Build | Depends On | Ports (host:container) |
+|---------|-------------|------------|------------------------|
+| `backend` | Build from `./backend/Dockerfile` | postgres | `8080:8080` |
+| `frontend` | Build from `./frontend/Dockerfile` | backend | `3000:3000` |
+| `postgres` | `postgres:16-alpine` | — | `5432:5432` |
+| `loki` | `grafana/loki:latest` | — | — |
+| `promtail` | `grafana/promtail:latest` | loki | — |
+| `grafana` | `grafana/grafana:latest` | loki | `3001:3000` |
+
+**Backend Dockerfile (multi-stage):**
+```
+Stage 1: golang:1.23-alpine → build binary
+Stage 2: alpine:latest → copy binary, expose 8080, run
+```
+
+**Frontend Dockerfile (multi-stage):**
+```
+Stage 1: node:20-alpine → install deps, build
+Stage 2: node:20-alpine → copy .next/standalone, expose 3000, run
+```
+
+**Volumes:**
+- `postgres_data` — persistent PostgreSQL data
+- `loki_data` — log storage
+- `grafana_data` — dashboards and settings
+
+**Networks:**
+- `ritualx-net` — single bridge network for all services
+
+**Environment Variables (via `.env`):**
+
+| Variable | Default | Used By |
+|----------|---------|---------|
+| `DB_HOST` | `postgres` | backend |
+| `DB_PORT` | `5432` | backend |
+| `DB_USER` | `ritualx` | backend, postgres |
+| `DB_PASSWORD` | (required) | backend, postgres |
+| `DB_NAME` | `ritualx` | backend, postgres |
+| `JWT_SECRET` | (required) | backend |
+| `LOG_LEVEL` | `info` | backend |
+| `LOKI_RETENTION_PERIOD` | `168h` | loki |
+| `GF_SECURITY_ADMIN_PASSWORD` | (required) | grafana |
+
+**File structure at root:**
+
+```
+/
+├── docker-compose.yml
+├── .env.example
+├── backend/
+│   └── Dockerfile
+├── frontend/
+│   └── Dockerfile
+├── infra/
+│   ├── loki/
+│   │   └── loki-config.yml
+│   ├── promtail/
+│   │   └── promtail-config.yml
+│   └── grafana/
+│       └── provisioning/
+│           ├── datasources/
+│           │   └── loki.yml
+│           └── dashboards/
+│               ├── dashboard.yml
+│               └── api-overview.json
+```
+
+---
+
+### 9. Non-Functional Requirements
 
 | Area | Target |
 |------|--------|
