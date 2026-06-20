@@ -14,6 +14,8 @@ import (
 	"github.com/ArdyJunata/RitualX/backend/internal/handler"
 	"github.com/ArdyJunata/RitualX/backend/internal/logger"
 	"github.com/ArdyJunata/RitualX/backend/internal/middleware"
+	"github.com/ArdyJunata/RitualX/backend/internal/repository"
+	"github.com/ArdyJunata/RitualX/backend/internal/service"
 )
 
 func main() {
@@ -44,6 +46,13 @@ func main() {
 
 	api := app.Group("/api/v1")
 	api.Get("/health", handler.HealthCheck(db))
+
+	// Auth routes
+	userRepo := repository.NewUserRepository(db)
+	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
+
+	auth := api.Group("/auth")
+	auth.Post("/register", handler.Register(authService))
 
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
