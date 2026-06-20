@@ -40,6 +40,11 @@ func WithTraceID(ctx context.Context, id string) context.Context {
 	return context.WithValue(ctx, traceIDKey, id)
 }
 
+// SetLogger replaces the default logger (used for testing).
+func SetLogger(l *slog.Logger) {
+	defaultLogger = l
+}
+
 func parseLevel(level string) slog.Level {
 	switch strings.ToLower(level) {
 	case "debug":
