@@ -13,6 +13,7 @@ import (
 	"github.com/ArdyJunata/RitualX/backend/internal/config"
 	"github.com/ArdyJunata/RitualX/backend/internal/handler"
 	"github.com/ArdyJunata/RitualX/backend/internal/logger"
+	"github.com/ArdyJunata/RitualX/backend/internal/middleware"
 )
 
 func main() {
@@ -38,6 +39,8 @@ func main() {
 	log.Info("database connected")
 
 	app := fiber.New(fiber.Config{})
+
+	app.Use(middleware.Trace())
 
 	api := app.Group("/api/v1")
 	api.Get("/health", handler.HealthCheck(db))
