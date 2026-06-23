@@ -102,7 +102,9 @@ func (s *AuthService) Register(req RegisterRequest) (*RegisterResponse, error) {
 		Token:     refreshToken,
 		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
 	}
-	_ = s.refreshTokenRepo.Create(rt)
+	if err := s.refreshTokenRepo.Create(rt); err != nil {
+		return nil, &ServiceError{Code: "INTERNAL_ERROR", Message: "could not save session"}
+	}
 
 	return &RegisterResponse{
 		User:         *user,
@@ -164,8 +166,14 @@ func (s *AuthService) Login(req LoginRequest, ip, userAgent string) (*LoginRespo
 		return nil, &ServiceError{Code: "INVALID_CREDENTIALS", Message: "invalid email or password"}
 	}
 
-	accessToken, _ := pkg.GenerateAccessToken(user.ID.String(), s.jwtSecret)
-	refreshTokenStr, _ := pkg.GenerateRefreshToken(user.ID.String(), s.jwtSecret)
+	accessToken, err := pkg.GenerateAccessToken(user.ID.String(), s.jwtSecret)
+	if err != nil {
+		return nil, &ServiceError{Code: "INTERNAL_ERROR", Message: "could not generate access token"}
+	}
+	refreshTokenStr, err := pkg.GenerateRefreshToken(user.ID.String(), s.jwtSecret)
+	if err != nil {
+		return nil, &ServiceError{Code: "INTERNAL_ERROR", Message: "could not generate refresh token"}
+	}
 
 	rt := &model.RefreshToken{
 		UserID:    user.ID,
@@ -198,7 +206,10 @@ func (s *AuthService) Refresh(tokenStr string) (string, error) {
 		return "", &ServiceError{Code: "UNAUTHORIZED", Message: "refresh token expired"}
 	}
 
-	accessToken, _ := pkg.GenerateAccessToken(rt.UserID.String(), s.jwtSecret)
+	accessToken, err := pkg.GenerateAccessToken(rt.UserID.String(), s.jwtSecret)
+	if err != nil {
+		return "", &ServiceError{Code: "INTERNAL_ERROR", Message: "could not generate access token"}
+	}
 	return accessToken, nil
 }
 
