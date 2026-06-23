@@ -21,7 +21,8 @@ func setupAuthTest(t *testing.T) (*fiber.App, *gorm.DB) {
 
 	app := fiber.New()
 	userRepo := repository.NewUserRepository(db)
-	authService := service.NewAuthService(userRepo, "test-secret")
+	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
+	authService := service.NewAuthService(userRepo, refreshTokenRepo, "test_secret")
 	app.Post("/api/v1/auth/register", Register(authService))
 
 	return app, db

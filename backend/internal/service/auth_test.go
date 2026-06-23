@@ -32,8 +32,9 @@ func cleanupUser(t *testing.T, db *gorm.DB, email string) {
 func newAuthService(t *testing.T) (*AuthService, *gorm.DB) {
 	t.Helper()
 	db := setupTestDB(t)
-	repo := repository.NewUserRepository(db)
-	svc := NewAuthService(repo, testJWTSecret)
+	userRepo := repository.NewUserRepository(db)
+	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
+	svc := NewAuthService(userRepo, refreshTokenRepo, testJWTSecret)
 	return svc, db
 }
 
