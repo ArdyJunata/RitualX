@@ -32,8 +32,9 @@ func cleanupUser(t *testing.T, db *gorm.DB, email string) {
 func newAuthService(t *testing.T) (*AuthService, *gorm.DB) {
 	t.Helper()
 	db := setupTestDB(t)
-	repo := repository.NewUserRepository(db)
-	svc := NewAuthService(repo, testJWTSecret)
+	userRepo := repository.NewUserRepository(db)
+	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
+	svc := NewAuthService(userRepo, refreshTokenRepo, testJWTSecret)
 	return svc, db
 }
 
@@ -45,7 +46,7 @@ func TestRegister_Success(t *testing.T) {
 		Email:    "register-ok@test.com",
 		Username: "registerok",
 		Password: "password123",
-	})
+	}, "127.0.0.1", "test-agent")
 	if err != nil {
 		t.Fatalf("Register failed: %v", err)
 	}
@@ -83,10 +84,10 @@ func TestRegister_DuplicateEmail(t *testing.T) {
 		Username: "dupuser1",
 		Password: "password123",
 	}
-	_, _ = svc.Register(req)
+	_, _ = svc.Register(req, "127.0.0.1", "test-agent")
 
 	req.Username = "dupuser2"
-	_, err := svc.Register(req)
+	_, err := svc.Register(req, "127.0.0.1", "test-agent")
 	if err == nil {
 		t.Fatal("expected error for duplicate email")
 	}
@@ -109,10 +110,10 @@ func TestRegister_DuplicateUsername(t *testing.T) {
 		Username: "sameuser",
 		Password: "password123",
 	}
-	_, _ = svc.Register(req)
+	_, _ = svc.Register(req, "127.0.0.1", "test-agent")
 
 	req.Email = "dup-uname2@test.com"
-	_, err := svc.Register(req)
+	_, err := svc.Register(req, "127.0.0.1", "test-agent")
 	if err == nil {
 		t.Fatal("expected error for duplicate username")
 	}
@@ -143,7 +144,7 @@ func TestRegister_ValidationErrors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := svc.Register(tt.req)
+			_, err := svc.Register(tt.req, "127.0.0.1", "test-agent")
 			if err == nil {
 				t.Fatal("expected validation error")
 			}
@@ -170,23 +171,110 @@ func TestRegister_ValidationErrors(t *testing.T) {
 
 func TestRegister_PasswordHashed(t *testing.T) {
 	svc, db := newAuthService(t)
-	defer cleanupUser(t, db, "hash-test@test.com")
+	defer cleanupUser(t, db, "test@example.com")
 
 	_, err := svc.Register(RegisterRequest{
-		Email:    "hash-test@test.com",
-		Username: "hashtest",
-		Password: "mypassword",
-	})
+		Email:    "test@example.com",
+		Username: "testuser",
+		Password: "password123",
+	}, "127.0.0.1", "test-agent")
+
 	if err != nil {
-		t.Fatalf("Register failed: %v", err)
+		t.Fatalf("expected no error, got %v", err)
 	}
 
 	var user model.User
-	db.Where("email = ?", "hash-test@test.com").First(&user)
-	if user.PasswordHash == "mypassword" {
+	db.Where("email = ?", "test@example.com").First(&user)
+	if user.PasswordHash == "password123" {
 		t.Error("password stored as plaintext")
 	}
 	if user.PasswordHash == "" {
 		t.Error("password_hash is empty")
+	}
+}
+
+func TestAuthService_Login(t *testing.T) {
+	svc, db := newAuthService(t)
+	defer cleanupUser(t, db, "login@example.com")
+
+	req := RegisterRequest{
+		Email:    "login@example.com",
+		Username: "loginuser",
+		Password: "password123",
+	}
+	_, _ = svc.Register(req, "127.0.0.1", "test-agent")
+
+	// Valid login
+	resp, err := svc.Login(LoginRequest{
+		Email:    "login@example.com",
+		Password: "password123",
+	}, "127.0.0.1", "test-agent")
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if resp.AccessToken == "" {
+		t.Error("expected access token")
+	}
+	if resp.RefreshToken == "" {
+		t.Error("expected refresh token")
+	}
+
+	// Invalid login
+	_, err = svc.Login(LoginRequest{
+		Email:    "login@example.com",
+		Password: "wrongpassword",
+	}, "127.0.0.1", "test-agent")
+
+	if err == nil {
+		t.Error("expected error for invalid password")
+	}
+}
+
+func TestAuthService_Refresh(t *testing.T) {
+	svc, db := newAuthService(t)
+	defer cleanupUser(t, db, "refresh@example.com")
+
+	req := RegisterRequest{
+		Email:    "refresh@example.com",
+		Username: "refreshuser",
+		Password: "password123",
+	}
+	regResp, _ := svc.Register(req, "127.0.0.1", "test-agent")
+
+	token, err := svc.Refresh(regResp.RefreshToken)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if token == "" {
+		t.Error("expected new access token")
+	}
+
+	_, err = svc.Refresh("invalid-token")
+	if err == nil {
+		t.Error("expected error for invalid token")
+	}
+}
+
+func TestAuthService_Logout(t *testing.T) {
+	svc, db := newAuthService(t)
+	defer cleanupUser(t, db, "logout@example.com")
+
+	req := RegisterRequest{
+		Email:    "logout@example.com",
+		Username: "logoutuser",
+		Password: "password123",
+	}
+	regResp, _ := svc.Register(req, "127.0.0.1", "test-agent")
+
+	err := svc.Logout(regResp.RefreshToken)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	// Token should be invalid now
+	_, err = svc.Refresh(regResp.RefreshToken)
+	if err == nil {
+		t.Error("expected error trying to refresh after logout")
 	}
 }

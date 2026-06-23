@@ -21,8 +21,12 @@ func setupAuthTest(t *testing.T) (*fiber.App, *gorm.DB) {
 
 	app := fiber.New()
 	userRepo := repository.NewUserRepository(db)
-	authService := service.NewAuthService(userRepo, "test-secret")
+	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
+	authService := service.NewAuthService(userRepo, refreshTokenRepo, "test_secret")
 	app.Post("/api/v1/auth/register", Register(authService))
+	app.Post("/api/v1/auth/login", Login(authService))
+	app.Post("/api/v1/auth/refresh", Refresh(authService))
+	app.Post("/api/v1/auth/logout", Logout(authService))
 
 	return app, db
 }
@@ -153,5 +157,113 @@ func TestRegisterHandler_InvalidJSON(t *testing.T) {
 
 	if resp.StatusCode != 400 {
 		t.Errorf("status = %d, want 400", resp.StatusCode)
+	}
+}
+
+func TestLoginHandler_Success(t *testing.T) {
+	app, db := setupAuthTest(t)
+	defer cleanupUser(t, db, "login-handler@test.com")
+
+	// Register first
+	reqReg := httptest.NewRequest("POST", "/api/v1/auth/register", strings.NewReader(`{"email":"login-handler@test.com","username":"loginhandler","password":"password123"}`))
+	reqReg.Header.Set("Content-Type", "application/json")
+	_, _ = app.Test(reqReg)
+
+	// Login
+	reqLogin := httptest.NewRequest("POST", "/api/v1/auth/login", strings.NewReader(`{"email":"login-handler@test.com","password":"password123"}`))
+	reqLogin.Header.Set("Content-Type", "application/json")
+	resp, err := app.Test(reqLogin)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+
+	if resp.StatusCode != 200 {
+		t.Errorf("status = %d, want 200", resp.StatusCode)
+	}
+
+	// Check if set-cookie header contains refresh_token
+	cookies := resp.Header.Values("Set-Cookie")
+	foundCookie := false
+	for _, c := range cookies {
+		if strings.Contains(c, "refresh_token=") && strings.Contains(c, "HttpOnly") {
+			foundCookie = true
+			break
+		}
+	}
+	if !foundCookie {
+		t.Error("expected refresh_token cookie with HttpOnly flag")
+	}
+}
+
+func TestRefreshHandler_Success(t *testing.T) {
+	app, db := setupAuthTest(t)
+	defer cleanupUser(t, db, "refresh-handler@test.com")
+
+	// Register to get cookie
+	reqReg := httptest.NewRequest("POST", "/api/v1/auth/register", strings.NewReader(`{"email":"refresh-handler@test.com","username":"refreshhandler","password":"password123"}`))
+	reqReg.Header.Set("Content-Type", "application/json")
+	respReg, _ := app.Test(reqReg)
+
+	var cookieStr string
+	for _, c := range respReg.Header.Values("Set-Cookie") {
+		if strings.Contains(c, "refresh_token=") {
+			cookieStr = strings.Split(c, ";")[0]
+			break
+		}
+	}
+
+	// Refresh
+	reqRef := httptest.NewRequest("POST", "/api/v1/auth/refresh", nil)
+	reqRef.Header.Set("Cookie", cookieStr)
+	resp, err := app.Test(reqRef)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+
+	if resp.StatusCode != 200 {
+		t.Errorf("status = %d, want 200", resp.StatusCode)
+	}
+}
+
+func TestLogoutHandler_Success(t *testing.T) {
+	app, db := setupAuthTest(t)
+	defer cleanupUser(t, db, "logout-handler@test.com")
+
+	// Register to get cookie
+	reqReg := httptest.NewRequest("POST", "/api/v1/auth/register", strings.NewReader(`{"email":"logout-handler@test.com","username":"logouthandler","password":"password123"}`))
+	reqReg.Header.Set("Content-Type", "application/json")
+	respReg, _ := app.Test(reqReg)
+
+	var cookieStr string
+	for _, c := range respReg.Header.Values("Set-Cookie") {
+		if strings.Contains(c, "refresh_token=") {
+			cookieStr = strings.Split(c, ";")[0]
+			break
+		}
+	}
+
+	// Logout
+	reqOut := httptest.NewRequest("POST", "/api/v1/auth/logout", nil)
+	reqOut.Header.Set("Cookie", cookieStr)
+	resp, err := app.Test(reqOut)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+
+	if resp.StatusCode != 200 {
+		t.Errorf("status = %d, want 200", resp.StatusCode)
+	}
+
+	// Check if cookie is cleared
+	cookies := resp.Header.Values("Set-Cookie")
+	foundClear := false
+	for _, c := range cookies {
+		if strings.Contains(c, "refresh_token=") && strings.Contains(c, "Max-Age=0") {
+			foundClear = true
+			break
+		}
+	}
+	if !foundClear {
+		t.Error("expected refresh_token cookie to be cleared")
 	}
 }
