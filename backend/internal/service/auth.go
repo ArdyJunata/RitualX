@@ -3,6 +3,7 @@ package service
 import (
 	"regexp"
 	"strings"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -19,19 +20,31 @@ type RegisterRequest struct {
 	Password string `json:"password"`
 }
 
+type LoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type LoginResponse struct {
+	User         model.User `json:"user"`
+	AccessToken  string     `json:"access_token"`
+	RefreshToken string     `json:"-"`
+}
+
 type RegisterResponse struct {
 	User         model.User `json:"user"`
 	AccessToken  string     `json:"access_token"`
-	RefreshToken string     `json:"refresh_token"`
+	RefreshToken string     `json:"-"`
 }
 
 type AuthService struct {
-	userRepo  *repository.UserRepository
-	jwtSecret string
+	userRepo         *repository.UserRepository
+	refreshTokenRepo *repository.RefreshTokenRepository
+	jwtSecret        string
 }
 
-func NewAuthService(userRepo *repository.UserRepository, jwtSecret string) *AuthService {
-	return &AuthService{userRepo: userRepo, jwtSecret: jwtSecret}
+func NewAuthService(userRepo *repository.UserRepository, rtRepo *repository.RefreshTokenRepository, jwtSecret string) *AuthService {
+	return &AuthService{userRepo: userRepo, refreshTokenRepo: rtRepo, jwtSecret: jwtSecret}
 }
 
 func (s *AuthService) Register(req RegisterRequest) (*RegisterResponse, error) {
@@ -84,6 +97,13 @@ func (s *AuthService) Register(req RegisterRequest) (*RegisterResponse, error) {
 		return nil, &ServiceError{Code: "INTERNAL_ERROR", Message: "internal error"}
 	}
 
+	rt := &model.RefreshToken{
+		UserID:    user.ID,
+		Token:     refreshToken,
+		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
+	}
+	_ = s.refreshTokenRepo.Create(rt)
+
 	return &RegisterResponse{
 		User:         *user,
 		AccessToken:  accessToken,
@@ -129,4 +149,62 @@ func isValidEmail(email string) bool {
 		return false
 	}
 	return strings.Contains(parts[1], ".")
+}
+
+func (s *AuthService) Login(req LoginRequest, ip, userAgent string) (*LoginResponse, error) {
+	user, err := s.userRepo.FindByEmail(req.Email)
+	if err != nil {
+		return nil, &ServiceError{Code: "INTERNAL_ERROR", Message: "internal error"}
+	}
+	if user == nil {
+		return nil, &ServiceError{Code: "INVALID_CREDENTIALS", Message: "invalid email or password"}
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
+		return nil, &ServiceError{Code: "INVALID_CREDENTIALS", Message: "invalid email or password"}
+	}
+
+	accessToken, _ := pkg.GenerateAccessToken(user.ID.String(), s.jwtSecret)
+	refreshTokenStr, _ := pkg.GenerateRefreshToken(user.ID.String(), s.jwtSecret)
+
+	rt := &model.RefreshToken{
+		UserID:    user.ID,
+		Token:     refreshTokenStr,
+		IPAddress: ip,
+		UserAgent: userAgent,
+		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
+	}
+	if err := s.refreshTokenRepo.Create(rt); err != nil {
+		return nil, &ServiceError{Code: "INTERNAL_ERROR", Message: "could not save session"}
+	}
+
+	return &LoginResponse{
+		User:         *user,
+		AccessToken:  accessToken,
+		RefreshToken: refreshTokenStr,
+	}, nil
+}
+
+func (s *AuthService) Refresh(tokenStr string) (string, error) {
+	if tokenStr == "" {
+		return "", &ServiceError{Code: "UNAUTHORIZED", Message: "missing refresh token"}
+	}
+	rt, err := s.refreshTokenRepo.FindByToken(tokenStr)
+	if err != nil || rt == nil {
+		return "", &ServiceError{Code: "UNAUTHORIZED", Message: "invalid refresh token"}
+	}
+	if time.Now().After(rt.ExpiresAt) {
+		_ = s.refreshTokenRepo.Delete(tokenStr)
+		return "", &ServiceError{Code: "UNAUTHORIZED", Message: "refresh token expired"}
+	}
+
+	accessToken, _ := pkg.GenerateAccessToken(rt.UserID.String(), s.jwtSecret)
+	return accessToken, nil
+}
+
+func (s *AuthService) Logout(tokenStr string) error {
+	if tokenStr == "" {
+		return nil
+	}
+	return s.refreshTokenRepo.Delete(tokenStr)
 }
