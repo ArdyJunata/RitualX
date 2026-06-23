@@ -37,7 +37,7 @@ func Register(authService *service.AuthService) fiber.Handler {
 			return errorResponse(c, fiber.StatusBadRequest, "INVALID_REQUEST", "invalid request body")
 		}
 
-		resp, err := authService.Register(req)
+		resp, err := authService.Register(req, c.IP(), string(c.Request().Header.UserAgent()))
 		if err != nil {
 			return handleServiceError(c, err)
 		}

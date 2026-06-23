@@ -47,7 +47,7 @@ func NewAuthService(userRepo *repository.UserRepository, rtRepo *repository.Refr
 	return &AuthService{userRepo: userRepo, refreshTokenRepo: rtRepo, jwtSecret: jwtSecret}
 }
 
-func (s *AuthService) Register(req RegisterRequest) (*RegisterResponse, error) {
+func (s *AuthService) Register(req RegisterRequest, ip, userAgent string) (*RegisterResponse, error) {
 	if errs := validateRegister(req); len(errs) > 0 {
 		return nil, &ServiceError{
 			Code:    "VALIDATION_ERROR",
@@ -100,11 +100,11 @@ func (s *AuthService) Register(req RegisterRequest) (*RegisterResponse, error) {
 	rt := &model.RefreshToken{
 		UserID:    user.ID,
 		Token:     refreshToken,
+		IPAddress: ip,
+		UserAgent: userAgent,
 		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
 	}
-	if err := s.refreshTokenRepo.Create(rt); err != nil {
-		return nil, &ServiceError{Code: "INTERNAL_ERROR", Message: "could not save session"}
-	}
+	_ = s.refreshTokenRepo.Create(rt)
 
 	return &RegisterResponse{
 		User:         *user,
