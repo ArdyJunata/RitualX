@@ -49,7 +49,8 @@ func main() {
 
 	// Auth routes
 	userRepo := repository.NewUserRepository(db)
-	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
+	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
+	authService := service.NewAuthService(userRepo, refreshTokenRepo, cfg.JWTSecret)
 
 	auth := api.Group("/auth")
 	auth.Post("/register", handler.Register(authService))
