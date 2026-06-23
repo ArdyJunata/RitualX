@@ -54,6 +54,9 @@ func main() {
 
 	auth := api.Group("/auth")
 	auth.Post("/register", handler.Register(authService))
+	auth.Post("/login", handler.Login(authService))
+	auth.Post("/refresh", handler.Refresh(authService))
+	auth.Post("/logout", handler.Logout(authService))
 
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
