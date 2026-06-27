@@ -11,7 +11,27 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        emerald: {
+          300: "#6EE7B7",
+          400: "#34D399",
+          600: "#059669",
+          900: "#064E3B",
+          DEFAULT: "#10B981", // Primary Accent
+        },
+        amber: {
+          DEFAULT: "#F59E0B", // Streak Color
+        },
+        red: {
+          DEFAULT: "#EF4444", // Punishment Color
+        },
+        purple: {
+          DEFAULT: "#8B5CF6", // Gamification/XP Color
+        }
       },
+      fontFamily: {
+        sans: ["var(--font-inter)", "sans-serif"],
+        heading: ["var(--font-outfit)", "sans-serif"],
+      }
     },
   },
   plugins: [],
