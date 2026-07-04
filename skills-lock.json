@@ -1,6 +1,42 @@
 {
   "version": 1,
   "skills": {
+    "frontend-architecture": {
+      "source": "stareezy-1/frontend-architecture-skill",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-architecture/SKILL.md",
+      "computedHash": "8426291c4764f847cbc6f6b180e23ca1a5ceaa029b6a872f8e30dae1814365dc"
+    },
+    "frontend-data-contracts": {
+      "source": "stareezy-1/frontend-architecture-skill",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-data-contracts/SKILL.md",
+      "computedHash": "f47bcd4df969047e3254afa76fab3dd788025b3c3db67b6c8dda5d7bbb4838a1"
+    },
+    "frontend-lighthouse": {
+      "source": "stareezy-1/frontend-architecture-skill",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-lighthouse/SKILL.md",
+      "computedHash": "b3d8901e4e2260bd2f60155a95d7561619e6c1c27f2d7463817de17f11063ce5"
+    },
+    "frontend-observability": {
+      "source": "stareezy-1/frontend-architecture-skill",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-observability/SKILL.md",
+      "computedHash": "4ba2f9dc5c388b029007cd18e90504aec034cbdc705552c036944abfc6574886"
+    },
+    "frontend-optimistic-mutations": {
+      "source": "stareezy-1/frontend-architecture-skill",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-optimistic-mutations/SKILL.md",
+      "computedHash": "7639aacc9b6d18d5d829ea7f860b6374cfdf3426177bcaae3eb9b3c48450ba29"
+    },
+    "frontend-seo": {
+      "source": "stareezy-1/frontend-architecture-skill",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-seo/SKILL.md",
+      "computedHash": "7799cda8274ae369b7fd0efea7f492b971d0be8dd42acd9bbb4c9110325e32e9"
+    },
     "golang-code-style": {
       "source": "samber/cc-skills-golang",
       "sourceType": "github",
