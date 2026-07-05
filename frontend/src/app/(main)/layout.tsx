@@ -1,8 +1,12 @@
-export default function MainLayout({ children }: { children: React.ReactNode }) {
+import type { ReactNode } from "react";
+import { BottomNav } from "@/shared/components/ui/BottomNav";
+
+export default function MainLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-28">
       {children}
-      {/* Bottom Nav will go here later */}
+      <BottomNav />
     </div>
   );
 }
+
