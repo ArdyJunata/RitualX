@@ -1,0 +1,15 @@
+export const questPageStyles = {
+  root: "flex flex-col gap-6 py-4",
+  header: "flex flex-col gap-1",
+  title: "font-heading text-2xl font-bold text-zinc-100",
+  subtitle: "text-sm text-zinc-500",
+  card: "glass-card p-5 flex flex-col gap-3",
+  cardTitle: "text-base font-semibold text-zinc-200",
+  cardBody: "text-sm text-zinc-500",
+  questItem: "flex items-center gap-3 py-2 border-b border-white/5 last:border-0",
+  questIcon: "text-xl shrink-0",
+  questInfo: "flex flex-col gap-0.5 min-w-0",
+  questName: "text-sm font-medium text-zinc-200 truncate",
+  questReward: "text-xs text-purple",
+  questProgress: "ml-auto shrink-0 text-xs text-zinc-500 tabular-nums",
+} as const;
