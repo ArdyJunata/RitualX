@@ -1,0 +1,86 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ritualx-postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-ritualx}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-ritualx_dev}
+      POSTGRES_DB: ${DB_NAME:-ritualx}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ritualx-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-ritualx} -d ${DB_NAME:-ritualx}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ritualx-migrate
+    entrypoint: >
+      sh -c "migrate -path /app/migrations -database
+      'postgres://${DB_USER:-ritualx}:${DB_PASSWORD:-ritualx_dev}@postgres:5432/${DB_NAME:-ritualx}?sslmode=disable'
+      up"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - ritualx-net
+    restart: "no"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ritualx-backend
+    environment:
+      APP_PORT: ${APP_PORT:-8080}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-ritualx}
+      DB_PASSWORD: ${DB_PASSWORD:-ritualx_dev}
+      DB_NAME: ${DB_NAME:-ritualx}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "8080:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - ritualx-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/v1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ritualx-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - ritualx-net
+    restart: unless-stopped
+
+networks:
+  ritualx-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
