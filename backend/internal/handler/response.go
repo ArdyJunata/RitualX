@@ -51,6 +51,12 @@ func mapErrorCodeToStatus(code string) int {
 		return fiber.StatusBadRequest
 	case "EMAIL_TAKEN", "USERNAME_TAKEN":
 		return fiber.StatusConflict
+	case "UNAUTHORIZED", "INVALID_CREDENTIALS":
+		return fiber.StatusUnauthorized
+	case "NOT_FOUND":
+		return fiber.StatusNotFound
+	case "FORBIDDEN":
+		return fiber.StatusForbidden
 	default:
 		return fiber.StatusInternalServerError
 	}

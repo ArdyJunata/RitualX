@@ -58,6 +58,13 @@ func main() {
 	auth.Post("/refresh", handler.Refresh(authService))
 	auth.Post("/logout", handler.Logout(authService))
 
+	// Routine routes (auth required)
+	routineRepo := repository.NewRoutineRepository(db)
+	routineService := service.NewRoutineService(routineRepo)
+
+	routines := api.Group("/routines", middleware.RequireAuth(cfg.JWTSecret))
+	routines.Post("/", handler.CreateRoutine(routineService))
+
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
