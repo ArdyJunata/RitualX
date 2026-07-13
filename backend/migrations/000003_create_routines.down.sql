@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS routines;
+DROP TYPE IF EXISTS period_type;
