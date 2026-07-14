@@ -64,6 +64,11 @@ func main() {
 
 	routines := api.Group("/routines", middleware.RequireAuth(cfg.JWTSecret))
 	routines.Post("/", handler.CreateRoutine(routineService))
+	routines.Get("/", handler.ListRoutines(routineService))
+	routines.Patch("/reorder", handler.ReorderRoutines(routineService))
+	routines.Get("/:id", handler.GetRoutine(routineService))
+	routines.Put("/:id", handler.UpdateRoutine(routineService))
+	routines.Delete("/:id", handler.DeleteRoutine(routineService))
 
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
