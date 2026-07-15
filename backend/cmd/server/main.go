@@ -70,6 +70,13 @@ func main() {
 	routines.Put("/:id", handler.UpdateRoutine(routineService))
 	routines.Delete("/:id", handler.DeleteRoutine(routineService))
 
+	// Routine log routes
+	routineLogRepo := repository.NewRoutineLogRepository(db)
+	routineLogService := service.NewRoutineLogService(routineLogRepo, routineRepo)
+
+	routines.Post("/:id/log", handler.LogRoutine(routineLogService))
+	routines.Delete("/:id/log/:logId", handler.DeleteRoutineLog(routineLogService))
+
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)

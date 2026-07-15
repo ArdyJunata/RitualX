@@ -133,6 +133,58 @@ func ReorderRoutines(routineService *service.RoutineService) fiber.Handler {
 	}
 }
 
+func LogRoutine(routineLogService *service.RoutineLogService) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		userID, err := parseUserID(c)
+		if err != nil {
+			return err
+		}
+
+		routineID, err := parseParamID(c, "id")
+		if err != nil {
+			return err
+		}
+
+		var req service.LogRoutineRequest
+		if err := c.BodyParser(&req); err != nil {
+			return errorResponse(c, fiber.StatusBadRequest, "INVALID_REQUEST", "invalid request body")
+		}
+
+		entry, svcErr := routineLogService.Log(userID, routineID, req)
+		if svcErr != nil {
+			return handleServiceError(c, svcErr)
+		}
+
+		return success(c, fiber.StatusCreated, entry)
+	}
+}
+
+func DeleteRoutineLog(routineLogService *service.RoutineLogService) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		userID, err := parseUserID(c)
+		if err != nil {
+			return err
+		}
+
+		routineID, err := parseParamID(c, "id")
+		if err != nil {
+			return err
+		}
+
+		logID, err := parseParamID(c, "logId")
+		if err != nil {
+			return err
+		}
+
+		svcErr := routineLogService.Delete(userID, routineID, logID)
+		if svcErr != nil {
+			return handleServiceError(c, svcErr)
+		}
+
+		return success(c, fiber.StatusOK, nil)
+	}
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 // parseUserID extracts and parses the user_id from Fiber locals (set by RequireAuth middleware).
