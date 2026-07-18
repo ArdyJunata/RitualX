@@ -78,7 +78,10 @@ export function BottomNav() {
 
       <CreateRoutineSheet
         isOpen={sheetOpen}
-        onClose={() => setSheetOpen(false)}
+        onClose={() => {
+          setSheetOpen(false)
+          window.dispatchEvent(new CustomEvent('routineCreated'))
+        }}
       />
     </>
   );

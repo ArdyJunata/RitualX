@@ -29,7 +29,7 @@ export const routinesApi = {
       headers: authHeaders(),
     }).catch((err: unknown) => {
       // 404 = no log today, not an error
-      if (err && typeof err === 'object' && 'statusCode' in err && (err as { statusCode: number }).statusCode === 404) {
+      if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 404) {
         return null
       }
       throw err
