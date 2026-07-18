@@ -1,1 +1,1 @@
-export { HomePlaceholderPage } from "./pages/home";
+export { HomePlaceholderPage, DailyViewPage } from "./pages/home";

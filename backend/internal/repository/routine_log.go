@@ -63,6 +63,21 @@ func (r *RoutineLogRepository) FindByRoutineAndDate(routineID uuid.UUID, date ti
 	return &l, nil
 }
 
+// FindTodayByRoutineAndUser returns today's log for the given routine+user, or nil if none.
+func (r *RoutineLogRepository) FindTodayByRoutineAndUser(routineID, userID uuid.UUID) (*model.RoutineLog, error) {
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+	var l model.RoutineLog
+	err := r.db.Where("routine_id = ? AND user_id = ? AND logged_at = ?", routineID, userID, today).First(&l).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &l, nil
+}
+
+
 // Delete removes a log entry by ID.
 func (r *RoutineLogRepository) Delete(id uuid.UUID) error {
 	return r.db.Delete(&model.RoutineLog{}, "id = ?", id).Error

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, CalendarDays, BarChart2, Sword, User, Plus } from "lucide-react";
+import { Home, CalendarDays, Sword, User, Plus } from "lucide-react";
 import { bottomNavStyles as s } from "./BottomNav.styles";
 import { CreateRoutineSheet } from "@/modules/routines";
 
@@ -78,7 +78,10 @@ export function BottomNav() {
 
       <CreateRoutineSheet
         isOpen={sheetOpen}
-        onClose={() => setSheetOpen(false)}
+        onClose={() => {
+          setSheetOpen(false)
+          window.dispatchEvent(new CustomEvent('routineCreated'))
+        }}
       />
     </>
   );

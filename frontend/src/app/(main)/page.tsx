@@ -1,2 +1,2 @@
-import { HomePlaceholderPage } from "@/modules/home";
-export default function Page() { return <HomePlaceholderPage />; }
+import { DailyViewPage } from "@/modules/home";
+export default function Page() { return <DailyViewPage />; }

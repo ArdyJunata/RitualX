@@ -185,6 +185,32 @@ func DeleteRoutineLog(routineLogService *service.RoutineLogService) fiber.Handle
 	}
 }
 
+func GetRoutineLog(routineLogService *service.RoutineLogService) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		userID, err := parseUserID(c)
+		if err != nil {
+			return err
+		}
+
+		routineID, err := parseParamID(c, "id")
+		if err != nil {
+			return err
+		}
+
+		entry, svcErr := routineLogService.GetToday(userID, routineID)
+		if svcErr != nil {
+			return handleServiceError(c, svcErr)
+		}
+
+		if entry == nil {
+			return errorResponse(c, fiber.StatusNotFound, "NOT_FOUND", "no log for today")
+		}
+
+		return success(c, fiber.StatusOK, entry)
+	}
+}
+
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 // parseUserID extracts and parses the user_id from Fiber locals (set by RequireAuth middleware).

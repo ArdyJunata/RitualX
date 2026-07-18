@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
@@ -42,6 +43,12 @@ func main() {
 
 	app := fiber.New(fiber.Config{})
 
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     "http://localhost:3000,http://localhost:3001",
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowMethods:     "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+		AllowCredentials: true,
+	}))
 	app.Use(middleware.Trace())
 
 	api := app.Group("/api/v1")
@@ -76,6 +83,8 @@ func main() {
 
 	routines.Post("/:id/log", handler.LogRoutine(routineLogService))
 	routines.Delete("/:id/log/:logId", handler.DeleteRoutineLog(routineLogService))
+	routines.Get("/:id/log", handler.GetRoutineLog(routineLogService))
+
 
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)

@@ -5,13 +5,13 @@ import { LoginRequest, LoginResponse, RegisterRequest, RegisterResponse } from '
 
 export const authApi = {
   login(body: LoginRequest): Promise<LoginResponse> {
-    return apiClient.post<LoginResponse>('/api/v1/auth/login', body, {
+    return apiClient.post<LoginResponse>('/auth/login', body, {
       credentials: 'include', // send/receive HttpOnly cookie
     })
   },
 
   register(body: RegisterRequest): Promise<RegisterResponse> {
-    return apiClient.post<RegisterResponse>('/api/v1/auth/register', body, {
+    return apiClient.post<RegisterResponse>('/auth/register', body, {
       credentials: 'include',
     })
   },
