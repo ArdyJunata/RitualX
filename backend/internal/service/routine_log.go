@@ -15,6 +15,7 @@ import (
 type RoutineLogRepoIface interface {
 	Upsert(log *model.RoutineLog) error
 	FindByID(id uuid.UUID) (*model.RoutineLog, error)
+	FindTodayByRoutineAndUser(routineID, userID uuid.UUID) (*model.RoutineLog, error)
 	Delete(id uuid.UUID) error
 }
 
@@ -128,4 +129,26 @@ func (s *RoutineLogService) Delete(userID, routineID, logID uuid.UUID) *ServiceE
 	}
 
 	return nil
+}
+
+// GetToday returns today's log for the given routine, or nil if none exists.
+func (s *RoutineLogService) GetToday(userID, routineID uuid.UUID) (*model.RoutineLog, *ServiceError) {
+	log := logger.Get()
+
+	// Verify routine ownership
+	routine, err := s.routineRepo.FindByIDAndUserID(routineID, userID)
+	if err != nil {
+		log.Error("failed to find routine for get-today log", "error", err, "routine_id", routineID, "user_id", userID)
+		return nil, &ServiceError{Code: "INTERNAL_ERROR", Message: "failed to fetch log"}
+	}
+	if routine == nil {
+		return nil, &ServiceError{Code: "NOT_FOUND", Message: "routine not found"}
+	}
+
+	entry, err := s.logRepo.FindTodayByRoutineAndUser(routineID, userID)
+	if err != nil {
+		log.Error("failed to fetch today log", "error", err, "routine_id", routineID, "user_id", userID)
+		return nil, &ServiceError{Code: "INTERNAL_ERROR", Message: "failed to fetch log"}
+	}
+	return entry, nil
 }

@@ -83,6 +83,8 @@ func main() {
 
 	routines.Post("/:id/log", handler.LogRoutine(routineLogService))
 	routines.Delete("/:id/log/:logId", handler.DeleteRoutineLog(routineLogService))
+	routines.Get("/:id/log", handler.GetRoutineLog(routineLogService))
+
 
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
