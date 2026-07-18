@@ -23,3 +23,19 @@ export interface CreateRoutineRequest {
   icon: string
   color: string
 }
+
+export interface RoutineLog {
+  id: string
+  routine_id: string
+  user_id: string
+  logged_at: string
+  count: number
+  note: string
+  created_at: string
+}
+
+export interface DailyRoutine extends Routine {
+  todayLog: RoutineLog | null
+  todayCount: number
+  isDone: boolean
+}
