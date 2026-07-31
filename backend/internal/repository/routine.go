@@ -96,3 +96,12 @@ func (r *RoutineRepository) Reorder(userID uuid.UUID, items []ReorderItem) error
 		return nil
 	})
 }
+
+// CountActiveByUserID returns the number of active routines for a user.
+func (r *RoutineRepository) CountActiveByUserID(userID uuid.UUID) (int, error) {
+	var count int64
+	err := r.db.Model(&model.Routine{}).
+		Where("user_id = ? AND is_active = true", userID).
+		Count(&count).Error
+	return int(count), err
+}
