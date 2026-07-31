@@ -85,14 +85,23 @@ func main() {
 	streakRepo := repository.NewStreakRepository(db)
 	streakService := service.NewStreakService(streakRepo, routineLogRepo, routineRepo)
 
-	routines.Post("/:id/log", handler.LogRoutine(routineLogService, streakService))
-	routines.Delete("/:id/log/:logId", handler.DeleteRoutineLog(routineLogService, streakService))
+	// Daily goal tracking (S3-03) — recomputed on each log/undo event
+	dailyGoalRepo := repository.NewDailyGoalRepository(db)
+	dailyGoalService := service.NewDailyGoalService(dailyGoalRepo)
+
+	routines.Post("/:id/log", handler.LogRoutine(routineLogService, streakService, dailyGoalService))
+	routines.Delete("/:id/log/:logId", handler.DeleteRoutineLog(routineLogService, streakService, dailyGoalService))
 	routines.Get("/:id/log", handler.GetRoutineLog(routineLogService))
 	routines.Get("/:id/streak", handler.GetRoutineStreak(streakService))
 
 	// Streak routes (auth required)
 	streaks := api.Group("/streaks", middleware.RequireAuth(cfg.JWTSecret))
 	streaks.Get("/", handler.ListStreaks(streakService))
+
+	// Daily goal routes (auth required)
+	goals := api.Group("/goals", middleware.RequireAuth(cfg.JWTSecret))
+	goals.Get("/daily", handler.GetDailyGoal(dailyGoalService))
+	goals.Get("/daily/history", handler.GetDailyGoalHistory(dailyGoalService))
 
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
