@@ -118,3 +118,42 @@ func (r *RoutineLogRepository) SumCountByRoutineAndDateRange(routineID uuid.UUID
 		Scan(&result).Error
 	return int(result.Total), err
 }
+
+// SumCountByUser returns COALESCE(SUM(count), 0) across all of the user's logs (all-time).
+func (r *RoutineLogRepository) SumCountByUser(userID uuid.UUID) (int, error) {
+	var result struct{ Total int64 }
+	err := r.db.Model(&model.RoutineLog{}).
+		Select("COALESCE(SUM(count), 0) AS total").
+		Where("user_id = ?", userID).
+		Scan(&result).Error
+	return int(result.Total), err
+}
+
+// SumCountByUserAndDateRange returns COALESCE(SUM(count), 0) for the user within [from, to] (inclusive).
+func (r *RoutineLogRepository) SumCountByUserAndDateRange(userID uuid.UUID, from, to time.Time) (int, error) {
+	var result struct{ Total int64 }
+	err := r.db.Model(&model.RoutineLog{}).
+		Select("COALESCE(SUM(count), 0) AS total").
+		Where("user_id = ? AND logged_at >= ? AND logged_at <= ?", userID, from, to).
+		Scan(&result).Error
+	return int(result.Total), err
+}
+
+// SumCountByRoutine returns COALESCE(SUM(count), 0) for a routine (all-time).
+func (r *RoutineLogRepository) SumCountByRoutine(routineID uuid.UUID) (int, error) {
+	var result struct{ Total int64 }
+	err := r.db.Model(&model.RoutineLog{}).
+		Select("COALESCE(SUM(count), 0) AS total").
+		Where("routine_id = ?", routineID).
+		Scan(&result).Error
+	return int(result.Total), err
+}
+
+// CountByRoutine returns the number of logged days for a routine (one row per day).
+func (r *RoutineLogRepository) CountByRoutine(routineID uuid.UUID) (int, error) {
+	var count int64
+	err := r.db.Model(&model.RoutineLog{}).
+		Where("routine_id = ?", routineID).
+		Count(&count).Error
+	return int(count), err
+}

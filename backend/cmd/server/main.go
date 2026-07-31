@@ -108,6 +108,14 @@ func main() {
 	goals.Get("/daily", handler.GetDailyGoal(dailyGoalService))
 	goals.Get("/daily/history", handler.GetDailyGoalHistory(dailyGoalService))
 
+	// Statistics routes (S3-05, auth required)
+	statisticsService := service.NewStatisticsService(routineLogRepo, streakRepo, routineRepo, userRepo)
+	stats := api.Group("/stats", middleware.RequireAuth(cfg.JWTSecret))
+	stats.Get("/overview", handler.GetStatsOverview(statisticsService))
+	stats.Get("/routines/:id", handler.GetRoutineStatistics(statisticsService))
+	stats.Get("/weekly-summary", handler.GetWeeklySummary(statisticsService))
+	stats.Get("/monthly-summary", handler.GetMonthlySummary(statisticsService))
+
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
