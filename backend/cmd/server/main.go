@@ -81,10 +81,18 @@ func main() {
 	routineLogRepo := repository.NewRoutineLogRepository(db)
 	routineLogService := service.NewRoutineLogService(routineLogRepo, routineRepo)
 
-	routines.Post("/:id/log", handler.LogRoutine(routineLogService))
-	routines.Delete("/:id/log/:logId", handler.DeleteRoutineLog(routineLogService))
-	routines.Get("/:id/log", handler.GetRoutineLog(routineLogService))
+	// Streak engine (S3-02) — recomputed server-side on each log/undo event
+	streakRepo := repository.NewStreakRepository(db)
+	streakService := service.NewStreakService(streakRepo, routineLogRepo, routineRepo)
 
+	routines.Post("/:id/log", handler.LogRoutine(routineLogService, streakService))
+	routines.Delete("/:id/log/:logId", handler.DeleteRoutineLog(routineLogService, streakService))
+	routines.Get("/:id/log", handler.GetRoutineLog(routineLogService))
+	routines.Get("/:id/streak", handler.GetRoutineStreak(streakService))
+
+	// Streak routes (auth required)
+	streaks := api.Group("/streaks", middleware.RequireAuth(cfg.JWTSecret))
+	streaks.Get("/", handler.ListStreaks(streakService))
 
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)

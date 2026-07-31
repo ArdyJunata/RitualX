@@ -77,8 +77,21 @@ func (r *RoutineLogRepository) FindTodayByRoutineAndUser(routineID, userID uuid.
 	return &l, nil
 }
 
-
 // Delete removes a log entry by ID.
 func (r *RoutineLogRepository) Delete(id uuid.UUID) error {
 	return r.db.Delete(&model.RoutineLog{}, "id = ?", id).Error
+}
+
+// ListDatesByRoutine returns all logged_at dates for a routine, ordered ascending.
+// Used by the streak engine to recompute streaks from source.
+func (r *RoutineLogRepository) ListDatesByRoutine(routineID uuid.UUID) ([]time.Time, error) {
+	var dates []time.Time
+	err := r.db.Model(&model.RoutineLog{}).
+		Where("routine_id = ?", routineID).
+		Order("logged_at ASC").
+		Pluck("logged_at", &dates).Error
+	if err != nil {
+		return nil, err
+	}
+	return dates, nil
 }

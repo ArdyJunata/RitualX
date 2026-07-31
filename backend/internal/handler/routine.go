@@ -133,7 +133,7 @@ func ReorderRoutines(routineService *service.RoutineService) fiber.Handler {
 	}
 }
 
-func LogRoutine(routineLogService *service.RoutineLogService) fiber.Handler {
+func LogRoutine(routineLogService *service.RoutineLogService, streakService *service.StreakService) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		userID, err := parseUserID(c)
 		if err != nil {
@@ -155,11 +155,14 @@ func LogRoutine(routineLogService *service.RoutineLogService) fiber.Handler {
 			return handleServiceError(c, svcErr)
 		}
 
+		// Streak engine runs on each log event (best-effort; errors are logged in-service).
+		_, _ = streakService.Recalculate(userID, routineID)
+
 		return success(c, fiber.StatusCreated, entry)
 	}
 }
 
-func DeleteRoutineLog(routineLogService *service.RoutineLogService) fiber.Handler {
+func DeleteRoutineLog(routineLogService *service.RoutineLogService, streakService *service.StreakService) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		userID, err := parseUserID(c)
 		if err != nil {
@@ -180,6 +183,9 @@ func DeleteRoutineLog(routineLogService *service.RoutineLogService) fiber.Handle
 		if svcErr != nil {
 			return handleServiceError(c, svcErr)
 		}
+
+		// Recompute streak after undo (best-effort; errors are logged in-service).
+		_, _ = streakService.Recalculate(userID, routineID)
 
 		return success(c, fiber.StatusOK, nil)
 	}
@@ -209,7 +215,6 @@ func GetRoutineLog(routineLogService *service.RoutineLogService) fiber.Handler {
 		return success(c, fiber.StatusOK, entry)
 	}
 }
-
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
