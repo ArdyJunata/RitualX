@@ -95,3 +95,26 @@ func (r *RoutineLogRepository) ListDatesByRoutine(routineID uuid.UUID) ([]time.T
 	}
 	return dates, nil
 }
+
+// ListByRoutineAndDateRange returns logs for a routine within [from, to] (inclusive), date ASC.
+func (r *RoutineLogRepository) ListByRoutineAndDateRange(routineID uuid.UUID, from, to time.Time) ([]model.RoutineLog, error) {
+	var logs []model.RoutineLog
+	err := r.db.
+		Where("routine_id = ? AND logged_at >= ? AND logged_at <= ?", routineID, from, to).
+		Order("logged_at ASC").
+		Find(&logs).Error
+	if err != nil {
+		return nil, err
+	}
+	return logs, nil
+}
+
+// SumCountByRoutineAndDateRange returns COALESCE(SUM(count), 0) within [from, to] (inclusive).
+func (r *RoutineLogRepository) SumCountByRoutineAndDateRange(routineID uuid.UUID, from, to time.Time) (int, error) {
+	var result struct{ Total int64 }
+	err := r.db.Model(&model.RoutineLog{}).
+		Select("COALESCE(SUM(count), 0) AS total").
+		Where("routine_id = ? AND logged_at >= ? AND logged_at <= ?", routineID, from, to).
+		Scan(&result).Error
+	return int(result.Total), err
+}
