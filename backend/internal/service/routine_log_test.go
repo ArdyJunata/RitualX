@@ -30,6 +30,13 @@ func (m *mockRoutineLogRepo) Delete(id uuid.UUID) error {
 	args := m.Called(id)
 	return args.Error(0)
 }
+func (m *mockRoutineLogRepo) FindTodayByRoutineAndUser(routineID, userID uuid.UUID) (*model.RoutineLog, error) {
+	args := m.Called(routineID, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*model.RoutineLog), args.Error(1)
+}
 
 type mockRoutineRepo2 struct{ mock.Mock }
 
