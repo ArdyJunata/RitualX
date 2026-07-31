@@ -89,10 +89,15 @@ func main() {
 	dailyGoalRepo := repository.NewDailyGoalRepository(db)
 	dailyGoalService := service.NewDailyGoalService(dailyGoalRepo)
 
+	// Stats: heatmap + progress (S3-04)
+	statsService := service.NewStatsService(routineLogRepo, routineRepo)
+
 	routines.Post("/:id/log", handler.LogRoutine(routineLogService, streakService, dailyGoalService))
 	routines.Delete("/:id/log/:logId", handler.DeleteRoutineLog(routineLogService, streakService, dailyGoalService))
 	routines.Get("/:id/log", handler.GetRoutineLog(routineLogService))
 	routines.Get("/:id/streak", handler.GetRoutineStreak(streakService))
+	routines.Get("/:id/heatmap", handler.GetRoutineHeatmap(statsService))
+	routines.Get("/:id/progress", handler.GetRoutineProgress(statsService))
 
 	// Streak routes (auth required)
 	streaks := api.Group("/streaks", middleware.RequireAuth(cfg.JWTSecret))
