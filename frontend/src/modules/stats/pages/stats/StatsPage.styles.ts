@@ -10,4 +10,6 @@ export const statsPageStyles = {
   card: "glass-card p-5 flex flex-col gap-2",
   cardTitle: "text-base font-semibold text-zinc-200",
   cardBody: "text-sm text-zinc-500",
+  section: "flex flex-col gap-3",
+  sectionTitle: "text-base font-semibold text-zinc-200",
 } as const;

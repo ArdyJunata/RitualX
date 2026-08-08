@@ -1,4 +1,5 @@
 import { statsPageStyles as s } from "./StatsPage.styles";
+import { RoutineHeatmaps } from "../../components";
 
 const MOCK_STATS = [
   { value: "0",  label: "Total Logs" },
@@ -24,10 +25,10 @@ export function StatsPage() {
         ))}
       </div>
 
-      <div className={s.card}>
-        <p className={s.cardTitle}>Charts</p>
-        <p className={s.cardBody}>Weekly and monthly breakdown — coming soon</p>
-      </div>
+      <section className={s.section}>
+        <h2 className={s.sectionTitle}>Contribution Heatmaps</h2>
+        <RoutineHeatmaps />
+      </section>
     </div>
   );
 }
